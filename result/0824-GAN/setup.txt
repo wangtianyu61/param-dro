@@ -1,0 +1,14 @@
+in all files, we fix lower weight = -10, target return = 5, and shift prop = 5
+
+we still let dominating term in the cost function = 2...
+
+so we remove these name dependencies in the name...
+
+we only consider the combination change w.r.t. sample number + feature dimension?
+
+e.g. temp4(xx)_100_30 means that we inherit the case in the 0723-mis folder, with sample size = 100, and feature dim = 30.
+
+
+need to adjust the DGP setup at the first and in the class of DGP...
+
+each column represent nonparametric + GAN + beta (underlying true cases...)
