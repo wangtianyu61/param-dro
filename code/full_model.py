@@ -21,7 +21,7 @@ class data_opt_portfolio:
         self.ambiguity_size = 0.5
         self.target_return = 5
         #the lower bound that the weight can attain guarantees 
-        self.lower_weight = -10
+        self.lower_weight = -2
     def Downside_Risk_ERM(self, option = 'CVXPY'):
         window_size = self.window_size
         history_return = self.history_return

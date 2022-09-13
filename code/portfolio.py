@@ -7,6 +7,8 @@ from full_model import *
 from add_param import *
 from scipy import stats
 
+from portfolio_util import *
+
 feature_dim = 20
 sample_size = 200
 test_size = 2000
@@ -28,7 +30,7 @@ feature_name = ['Mkt-RF', 'SMB', 'HML']
 
 if __name__ == '__main__':
     #ambiguity_set_choice = [0.02, 0.05, 0.1, 0.2, 0.5, 1]
-    port_name = '30_Industry'
+    port_name = '25_FF'
     print(port_name)
     CV = 1
     if CV == 0:
@@ -39,7 +41,7 @@ if __name__ == '__main__':
         ambiguity_set_choice = [1]
         CV = [0.2, 0.4, 0.6, 0.8, 1, 1.2, 1.4, 1.6, 1.8]
     PORT_DRO_ERM = data_opt_portfolio(window_size)
-    df_data = pd.read_csv('../data/portfolio/3_factor_' + str(port_name) + '.csv')[0:70]
+    df_data = pd.read_csv('../data/portfolio/3_factor_' + str(port_name) + '.csv')
     
     DRO_noparam_obj = np.zeros(len(ambiguity_set_choice) + 1)
     DRO_beta_obj = np.zeros(len(ambiguity_set_choice) + 1)
@@ -52,9 +54,11 @@ if __name__ == '__main__':
     #no reparameterize
     PORT_DRO_ERM.reparam = False
     DRO_noparam_obj[0] = PORT_DRO_ERM.roll_window_test_method('Down_Risk_ERM', 0, dom_order)
+    return_to_csv(PORT_DRO_ERM.port_return, port_name, 'ERM_noparam')
     for j, param in enumerate(ambiguity_set_choice):
         PORT_DRO_ERM.ambiguity_size = param
         DRO_noparam_obj[j + 1] = PORT_DRO_ERM.roll_window_test_method('Down_Risk_DRO', CV, dom_order)
+        return_to_csv(PORT_DRO_ERM.port_return, port_name, 'DRO_noparam')
     # #print(np.mean(return1)/np.std(return1))
     
     #reparameterize
@@ -66,18 +70,21 @@ if __name__ == '__main__':
     
     PORT_DRO_ERM.dist_type = 'beta'
     DRO_beta_obj[0] = PORT_DRO_ERM.roll_window_test_method('Down_Risk_ERM', 0, dom_order)
+    return_to_csv(PORT_DRO_ERM.port_return, port_name, 'ERM_beta')
     for j, param in enumerate(ambiguity_set_choice):
         PORT_DRO_ERM.ambiguity_size = param
         DRO_beta_obj[j + 1] = PORT_DRO_ERM.roll_window_test_method('Down_Risk_DRO', CV, dom_order)
-
+        return_to_csv(PORT_DRO_ERM.port_return, port_name, 'DRO_beta')
+        
     PORT_DRO_ERM.dist_type = 'normal'
     DRO_normal_obj[0] = PORT_DRO_ERM.roll_window_test_method('Down_Risk_ERM', 0, dom_order)
+    return_to_csv(PORT_DRO_ERM.port_return, port_name, 'ERM_normal')
     for j, param in enumerate(ambiguity_set_choice):
         PORT_DRO_ERM.ambiguity_size = param
         DRO_normal_obj[j + 1] = PORT_DRO_ERM.roll_window_test_method('Down_Risk_DRO', CV, dom_order)
-
+        return_to_csv(PORT_DRO_ERM.port_return, port_name, 'DRO_normal')
     df = pd.DataFrame([list(DRO_noparam_obj), list(DRO_beta_obj), list(DRO_normal_obj)])
-    df.to_csv('../result/portfolio/' + port_name + '_cv.csv', index = None)
+    df.to_csv('../result/portfolio/' + port_name + '_cv_summary.csv', index = None)
     
     
     # print('nonparam', ERM_noparam_obj, DRO_noparam_obj)
