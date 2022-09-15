@@ -11,6 +11,8 @@ import numpy as np
 import warnings
 
 from sklearn.exceptions import ConvergenceWarning
+
+    
 if __name__ == '__main__':
     warnings.filterwarnings("ignore", category = FutureWarning)
     warnings.filterwarnings("ignore", category = ConvergenceWarning)
@@ -20,7 +22,7 @@ if __name__ == '__main__':
     FILE_NAMES = glob.glob(DIR_DATA + "*.txt")
     FILE_NAMES = [fname for fname in FILE_NAMES if '_test.txt' not in fname]
     
-    for fname in FILE_NAMES[0:4]:
+    for fname in FILE_NAMES[0:8]:
         print(fname[len(DIR_DATA):-4])
         try:
             X_train, y_train, X_test, y_test = load_svmlight_files(
@@ -44,6 +46,6 @@ if __name__ == '__main__':
             is_test = False
         results = []
         if is_test:
-            uci_classification_kernel(X_train, y_train, X_test, y_test)
+            uci_classification(X_train, y_train, X_test, y_test)
         else:
-            uci_classification_kernel(X_data, y_data)
+            uci_classification(X_data, y_data)

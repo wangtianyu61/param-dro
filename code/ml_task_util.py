@@ -9,7 +9,7 @@ from collections import defaultdict
 from distutils.dist import Distribution
 import numpy as np
 from sklearn.model_selection import train_test_split, StratifiedKFold
-from sklearn.preprocessing import StandardScaler, MinMaxScaler
+from sklearn.preprocessing import StandardScaler, PolynomialFeatures, MinMaxScaler
 from sklearn.metrics import roc_auc_score
 from sklearn.metrics.pairwise import polynomial_kernel, rbf_kernel, laplacian_kernel
 from sklearn.utils import shuffle
@@ -56,25 +56,29 @@ def uci_classification(*args):
     # Fit classical svm model, hinge loss minimization
     stand_scaler = StandardScaler()
     x_train_nrm = stand_scaler.fit_transform(x_train)
+
     x_test_nrm = stand_scaler.transform(x_test)
     training_data = {'x': x_train_nrm, 'y': y_train}
-    dro_model = Logit_Loss(x_train_nrm, y_train)
+    ## add the second order interaction term
+    poly = PolynomialFeatures(2)
+    dro_model = Logit_Loss(poly.fit_transform(x_train_nrm), y_train)
     
     print('Without Robustness:')
     dro_model.sklearn_in_built()
     
-    print('AUC under standard scikit-learn is', dro_model.predict_auc(x_test_nrm, y_test))
+    print('AUC under standard scikit-learn is', dro_model.predict_auc(poly.fit_transform(x_test_nrm), y_test))
 
-    dro_model.standard_solver()
-    print('AUC under CVXPY is', dro_model.predict_auc(x_test_nrm, y_test))
+    #dro_model.standard_solver()
+    #print('AUC under CVXPY is', dro_model.predict_auc(x_test_nrm, y_test))
     
     dist_model = Distribution_Learner(x_train_nrm, y_train)
-    X_new, y_new = dist_model.condition_wgan_X_y()
-    dro_model.standard_solver(X = X_new, y = y_new)
-    print('AUC under CVXPY with WGAN data is', dro_model.predict_auc(x_test_nrm, y_test), 0)
+    X_new, y_new = dist_model.joint_wgan_X_y()
+    wgan_X_new = poly.fit_transform(X_new)
+    dro_model.standard_solver(X = wgan_X_new, y = y_new)
+    print('AUC under CVXPY with ERM-WGAN data is', dro_model.predict_auc(poly.fit_transform(x_test_nrm), y_test), 0)
     for eps in [0.1, 0.2, 0.5, 1, 2, 5]:
-        dro_model.standard_solver(X = X_new, y = y_new, robust_param = eps)
-        print('AUC under CVXPY with WGAN data is', dro_model.predict_auc(x_test_nrm, y_test), eps)
+        dro_model.standard_solver(X = wgan_X_new, y = y_new, robust_param = eps)
+        print('AUC under CVXPY with DRO-WGAN data is', dro_model.predict_auc(poly.fit_transform(x_test_nrm), y_test), eps)
 
     # Parameter selection and then test the model performance
     # skf = StratifiedKFold(n_splits=5)
