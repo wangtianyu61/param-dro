@@ -33,7 +33,7 @@ if __name__ == '__main__':
     ambiguity_size = 0.5
 
     PORT_WGAN = data_opt_portfolio(window_size)
-    df_data = pd.read_csv('../data/portfolio/3_factor_' + str(port_name) + '.csv')[122:]
+    df_data = pd.read_csv('../data/portfolio/3_factor_' + str(port_name) + '.csv')
         
     rv_name = df_data.columns[4:]
     dist_type = 'WGAN'
@@ -72,10 +72,10 @@ if __name__ == '__main__':
         DRO_return[i] = np.dot(PORT_WGAN.weight, test_return)
     
     PORT_WGAN.port_return = ERM_return
-    return_to_csv(PORT_DRO_ERM.port_return, port_name, 'WGAN-ERM')
+    return_to_csv(PORT_WGAN.port_return, port_name, 'WGAN-ERM')
     print('Excess Risk for WGAN-ERM is ', PORT_WGAN.evaluate_downside_risk())
     PORT_WGAN.port_return = DRO_return
-    return_to_csv(PORT_DRO_ERM.port_return, port_name, 'WGAN-DRO')
+    return_to_csv(PORT_WGAN.port_return, port_name, 'WGAN-DRO')
     print('Excess Risk for WGAN-DRO is ', PORT_WGAN.evaluate_downside_risk())    
     
 
