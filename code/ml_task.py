@@ -229,8 +229,8 @@ class Sq_Loss(Loss):
         x_test_nrm = np.array(x_test_nrm)
         y_pred = np.array(x_test_nrm @ self.w_opt).reshape(-1, 1)
         y_test = np.array(y_test).reshape(-1, 1)
-        print('Empirical Excess Risk is:', np.mean(np.abs(y_test - y_pred)))
-        return r2_score(y_pred, y_test)
+        print('r2 is:', r2_score(y_pred, y_test))
+        return np.mean(np.abs(y_test - y_pred))
     
 
 #use the standard cvx solver / in-built module in scikit-learn to solve binary-classification-entropy problem, output the best param

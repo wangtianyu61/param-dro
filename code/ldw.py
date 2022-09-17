@@ -32,7 +32,7 @@ if __name__ == '__main__':
     param_cons = ['Ridge', 1]
     seeds_choice = [0, 1, 2, 9, 10, 11, 14, 21, 27, 30]
     
-    for i in seeds_choice[5:]:
+    for i in seeds_choice:
         print(i)
         np.random.seed(i)
         feature = ['t', 'age', 'education', 'black', 'hispanic', 'married', 'nodegree', 're74', 're75']
@@ -50,14 +50,14 @@ if __name__ == '__main__':
         x_train, x_test, y_train, y_test = train_test_split(x_data, y_data, test_size = 0.2)
         dro_model = Sq_Loss(np.array(x_train), np.array(y_train))
         print('Without augmenting features:')
-        for eps in [0, 0.01, 0.05, 0.1, 0.5, 1, 5, 10]:
+        for eps in [0, 0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 5, 10]:
             dro_model.standard_solver(robust_param = 0, reg = ['W1-2', eps])
             print(dro_model.predict(np.array(x_train), np.array(y_train)), dro_model.predict(np.array(x_test), np.array(y_test)), eps)
         print('=================================')
         print('With augmenting features:')
         X_train_aug = poly.fit_transform(x_train)
         x_test_aug = poly.fit_transform(x_test)
-        for eps in [0, 0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 5]:
+        for eps in [0, 0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 5, 10]:
             dro_model.standard_solver(robust_param = 0, reg = ['W1-2', eps], X = X_train_aug, y = y_train)
             print(dro_model.predict(np.array(x_test_aug), np.array(y_test)), eps)
 
@@ -76,17 +76,17 @@ if __name__ == '__main__':
             validate_metric[j] = dro_model.predict(x_test, y_test)
         print(perform_metric, validate_metric)
         #SELECT THE BEST in sample model from them
-        X_train_new = wgan_data[np.argmax(perform_metric)]['X']
-        y_train_new = wgan_data[np.argmax(perform_metric)]['y']
+        X_train_new = wgan_data[np.argmin(perform_metric)]['X']
+        y_train_new = wgan_data[np.argmin(perform_metric)]['y']
         print('Without augmenting features:')
-        for eps in [0, 0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 5]:
+        for eps in [0, 0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 5, 10]:
             dro_model.standard_solver(robust_param = 0, reg = ['W1-2', eps], X = X_train_new, y = y_train_new)
             print(dro_model.predict(np.array(x_test), np.array(y_test)), eps)
         print("===============================")
         print('With augmenting features:')
         X_train_aug = poly.fit_transform(X_train_new)
         x_test_aug = poly.fit_transform(x_test)
-        for eps in [0, 0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 5]:
+        for eps in [0, 0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 5, 10]:
             dro_model.standard_solver(robust_param = 0, reg = ['W1-2', eps], X = X_train_aug, y = y_train_new)
             print(dro_model.predict(np.array(x_test_aug), np.array(y_test)), eps)
         #dro_model.standard_solver(reg = param_cons, X = X_train_new, y = y_train_new)
