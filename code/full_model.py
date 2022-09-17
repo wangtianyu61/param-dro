@@ -189,6 +189,7 @@ class data_opt_portfolio:
             self.param_est() 
         else:
             self.compute_chi2_distance()
+        self.window_size = self.history_return.shape[0]
         if option == 'GUROBI':
             m = Model("Downside_Risk_DRO_chi2_div")
             ## no shortsale constraint (decision constraint)
@@ -239,6 +240,7 @@ class data_opt_portfolio:
 
             self.weight = [v.x for v in weight]
         else:
+            
             weight = cp.Variable(self.port_num)
             aux_s = cp.Variable(self.window_size)
             eta = cp.Variable()
@@ -330,27 +332,32 @@ class data_opt_portfolio:
             ##Method 3: Simulation Counterpart of Method 1
 
         elif self.dist_type == 'WGAN':
-            os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
-
-            #train a NN with unconditional assets return 
-            continuous_vars_0 = ['r' + str(i) for i in range(self.port_num)]
-            df_return = pd.DataFrame(self.history_return, columns = continuous_vars_0)
-            continuous_lw_bd_0 = {}
-            categorical_vars_0 = []
-            context_vars_0 = []
-            data_wrapper = wgan.DataWrapper(df_return, continuous_vars_0, categorical_vars_0,
-                                            context_vars_0, continuous_lw_bd_0)
-            spec = wgan.Specifications(data_wrapper, batch_size = 128, max_epochs = 2000, critic_d_hidden = [32, 32], generator_d_hidden = [32, 32], critic_lr = 2e-3, generator_lr = 2e-3)
-            generator = wgan.Generator(spec)
-            critic = wgan.Critic(spec)
-
-            X, context = data_wrapper.preprocess(df_return)
-            wgan.train(generator, critic, X, context, spec)
-            #simulate data
-            df_generated = data_wrapper.apply_generator(generator, df_return.sample(sample_number, replace = True))
-            self.history_return = np.array(df_generated)
+            self.WGAN_train()
 
         self.window_size = sample_number
+    
+    #
+    def WGAN_train(self, resample_time):
+        sample_number = resample_time * self.window_size
+        os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
+
+        #train a NN with unconditional assets return 
+        continuous_vars_0 = ['r' + str(i) for i in range(self.port_num)]
+        df_return = pd.DataFrame(self.history_return, columns = continuous_vars_0)
+        continuous_lw_bd_0 = {}
+        categorical_vars_0 = []
+        context_vars_0 = []
+        data_wrapper = wgan.DataWrapper(df_return, continuous_vars_0, categorical_vars_0,
+                                        context_vars_0, continuous_lw_bd_0)
+        spec = wgan.Specifications(data_wrapper, batch_size = 64, max_epochs = 2000, critic_d_hidden = [32, 32], generator_d_hidden = [32, 32], critic_lr = 2e-3, generator_lr = 2e-3)
+        generator = wgan.Generator(spec)
+        critic = wgan.Critic(spec)
+
+        X, context = data_wrapper.preprocess(df_return)
+        wgan.train(generator, critic, X, context, spec)
+        #simulate data
+        df_generated = data_wrapper.apply_generator(generator, df_return.sample(sample_number, replace = True))
+        self.history_return = np.array(df_generated)
 
     #handle true data
     def roll_window_test_base(self, df_select, feature_name, label_name, dist_type = 'normal'):

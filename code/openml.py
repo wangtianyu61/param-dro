@@ -55,6 +55,7 @@ if __name__ == '__main__':
         dist_model = Distribution_Learner(X = x_train, y = y_train, is_regression = True)
         for j in range(wgan_train_num):
             X_train_new, y_train_new = dist_model.conditional_wgan_X_y()
+            wgan_data.append({'X': X_train_new, 'y': y_train_new})
             dro_model.standard_solver(reg = False, X = X_train_new, y = y_train_new)
             perform_metric[j] = dro_model.predict(x_train, y_train)
             validate_metric[j] = dro_model.predict(x_test, y_test)
@@ -64,7 +65,7 @@ if __name__ == '__main__':
         y_train_new = wgan_data[np.argmax(perform_metric)]['y']
         for eps in [0, 0.01, 0.05, 0.1, 0.5, 1]:
             dro_model.standard_solver(robust_param = 0, reg = ['Ridge', eps], X = X_train_new, y = y_train_new)
-            print(dro_model.predict(np.array(x_test_new), np.array(y_test)), eps)
+            print(dro_model.predict(np.array(x_test), np.array(y_test)), eps)
             
         
             

@@ -55,16 +55,17 @@ class Distribution_Learner:
             data_X = pd.DataFrame(X)
             data_y = pd.Series(y)
             self.df_origin = pd.concat([data_X, data_y], axis = 1)
+            self.df_origin.columns = list(range(0, data_X.shape[1] + 1))
             
-            self.sample_size = self.data_X.shape[0]
+            self.sample_size = data_X.shape[0]
         
             os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
             #in case of labelling
-            self.X_columns = list(range(0, self.data_X.shape[1]))
-            self.y_column = [self.data_X.shape[1]]
+            self.X_columns = list(range(0, data_X.shape[1]))
+            self.y_column = [data_X.shape[1]]
         else:
             self.df_origin = pd.concat([X, y], axis = 1)
-            self.X_columns = X.columns
+            self.X_columns = list(X.columns)
             self.y_column = [y.name]
             self.sample_size = len(self.df_origin)
         self.is_regression = is_regression
@@ -114,11 +115,11 @@ class Distribution_Learner:
         #train X 
         tr_X, context = data_wrappers[0].preprocess(data)
         wgan.train(generators[0], critics[0], tr_X, context, specs[0])
-        print('yes')
+        
         #train Y | X
         tr_y, context = data_wrappers[1].preprocess(data)
         wgan.train(generators[1], critics[1], tr_y, context, specs[1])
-        print('yes')
+        
         df_gen_X = data_wrappers[0].apply_generator(generators[0], data.sample(self.resample_times * self.sample_size, replace = True))
         df_gen_Y_X = data_wrappers[1].apply_generator(generators[1], df_gen_X)
         #df_gen_Y_X = np.array(df_gen_Y_X)
@@ -228,6 +229,7 @@ class Sq_Loss(Loss):
         x_test_nrm = np.array(x_test_nrm)
         y_pred = np.array(x_test_nrm @ self.w_opt).reshape(-1, 1)
         y_test = np.array(y_test).reshape(-1, 1)
+        print('Empirical Excess Risk is:', np.mean(np.abs(y_test - y_pred)))
         return r2_score(y_pred, y_test)
     
 
