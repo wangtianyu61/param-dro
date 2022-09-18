@@ -240,14 +240,17 @@ class data_opt_portfolio:
 
             self.weight = [v.x for v in weight]
         else:
-            
+
             weight = cp.Variable(self.port_num)
             aux_s = cp.Variable(self.window_size)
             eta = cp.Variable()
             loss = math.sqrt(1 + self.ambiguity_size) / math.sqrt(self.window_size) * cp.norm(aux_s - eta, 2) + eta
             prob = cp.Problem(cp.Minimize(loss), [cp.sum(weight) == 1, weight >= self.lower_weight, aux_s >= cp.power(cp.pos(self.target_return - self.history_return@weight), self.dom_order)])
-            prob.solve(solver = cp.GUROBI)
-            self.weight = weight.value
+            try:
+                prob.solve(solver = cp.GUROBI)
+                self.weight = weight.value
+            except Exception as e:
+                self.weight = np.ones(self.port_num) / self.port_num
         #print(aux_lambda.x)
         #print(self.weight)
         self.window_size = window_size
