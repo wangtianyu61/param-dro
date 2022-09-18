@@ -57,8 +57,11 @@ class data_opt_portfolio:
             weight = cp.Variable(self.port_num)
             loss = cp.sum(cp.power(cp.pos(self.target_return - self.history_return@weight), self.dom_order))
             prob = cp.Problem(cp.Minimize(loss), [cp.sum(weight) == 1, weight >= self.lower_weight])
-            prob.solve(solver = cp.GUROBI)
-            self.weight = weight.value
+            try:
+                prob.solve(solver = cp.GUROBI)
+                self.weight = weight.value
+            except Exception as e:
+                self.weight = np.ones(self.port_num) / self.port_num
 
         #print(self.weight)
         self.window_size = window_size
