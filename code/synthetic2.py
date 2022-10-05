@@ -88,16 +88,16 @@ class DGP:
     def DGP_test_beta(self):
         #model 3: distribution shift
         #shift_prop2 = np.random.uniform(-shift_prop, shift_prop)
-        for i in range(self.port_num):
-            shift_prop2 = np.random.uniform(0, shift_prop)
-            flag = -1
-            if self.alpha[i] < (alpha_lb + alpha_ub) / 2:
-                flag = 1
-            # if self.alpha[i] < (alpha_lb + alpha_ub)/2:
-            #     self.alpha[i] = self.alpha[i] + (alpha_ub - self.alpha[i])/shift_prop
-            # else:
-            #     self.alpha[i] = self.alpha[i] - (self.alpha[i] - alpha_lb)/shift_prop
-            self.alpha[i] = self.alpha[i] + flag * shift_prop2 * min(self.alpha[i] - alpha_lb, alpha_ub - self.alpha[i])
+        # for i in range(self.port_num):
+        #     shift_prop2 = np.random.uniform(0, shift_prop)
+        #     flag = -1
+        #     if self.alpha[i] < (alpha_lb + alpha_ub) / 2:
+        #         flag = 1
+        #     # if self.alpha[i] < (alpha_lb + alpha_ub)/2:
+        #     #     self.alpha[i] = self.alpha[i] + (alpha_ub - self.alpha[i])/shift_prop
+        #     # else:
+        #     #     self.alpha[i] = self.alpha[i] - (self.alpha[i] - alpha_lb)/shift_prop
+        #     self.alpha[i] = self.alpha[i] + flag * shift_prop2 * min(self.alpha[i] - alpha_lb, alpha_ub - self.alpha[i])
             
             
         
