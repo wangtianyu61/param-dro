@@ -57,10 +57,47 @@ def main_simulation():
         plt.savefig('../figures/simu1_' + str(sample_size) + '.pdf')
         #plt.show()
 
-
+def synthetic2():
+    pass
 
 
 if __name__ == '__main__':
-    main_simulation()
+    #main_simulation()
+    """
+    Row 0: Nonparam
+    Row 2: Beta
+    Row 5: Normal
+    """
 
+    DS_DIR = '../result/1003-rerun/temp4_'
+    eps = [0, 0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1]
+    dom_range = [1, 2, 4]
+    low_weight = [-2, -10]
+    model_name = {'Empirical': 0, 'Beta': 2, 'Normal': 5}
+
+    sample_range = [100, 200]
+    for sample_size in sample_range:
+        for dom_order in dom_range:
+            sns.set_style('darkgrid')
+            plt.figure(figsize = (10, 6), dpi = 100)
+            marker_choice = ['*', 'o', '*', 'o', '*', 'o']
+        
+            for j, lw in enumerate(low_weight):
+                filename = DS_DIR + str(dom_order) + '_' + str(sample_size) + '_' + str(lw) 
+                df = pd.read_csv(filename + '.csv')
+                
+                for i, method in enumerate(list(model_name.keys())):
+                    plt.plot(eps, list(df.iloc[model_name[method]]), label = method + r', $\tau$ = ' + str(-1 * lw), marker = marker_choice[int(2 * i + j)], linewidth = 1)
+            
+            
+            plt.legend(loc = 'upper right')
+            plt.xlabel(r'Size of Ambiguity Set ($\varepsilon$)', size = 14)
+            plt.ylabel(r'Z($\hat{x}$)', size = 14)
+            plt.yscale('log')
+            plt.savefig('../figures/simu2_temp4_' + str(sample_size) + '_' + str(dom_order) + '.pdf')
+    
+    
+    
+    
+    
 

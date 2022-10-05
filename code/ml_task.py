@@ -11,6 +11,7 @@ from scipy.special import beta
 from add_param import *
 from sklearn.model_selection import KFold
 from sklearn.linear_model import LogisticRegression, LinearRegression, Ridge, Lasso
+from sklearn.metrics.pairwise import rbf_kernel
 import wgan
 import os
 from sklearn.metrics import roc_auc_score, r2_score
@@ -133,6 +134,7 @@ class Distribution_Learner_LDW:
         batch_size_selector = {'nswre74': 128, 'psid': 512, 'cps': 4096}
         assert (model_name in ['nswre74', 'psid', 'cps'])
         self.chosen_batch_size = batch_size_selector[model_name]
+        self.sample_size = self.df_origin.shape[0]
         
     def conditional_wgan_X_y(self):
         continuous_vars_0 = ["age", "education", "re74", "re75"]
@@ -166,52 +168,88 @@ class Distribution_Learner_LDW:
         wgan.train(generators[1], critics[1], y, context, specs[1])
         
         # simulate data with conditional WGANs
-        df_generated = data_wrappers[0].apply_generator(generators[0], self.df_origin.sample(int(1e4), replace=True))
+        df_generated = data_wrappers[0].apply_generator(generators[0], self.df_origin.sample(int(self.sample_size * 5), replace=True))
         df_generated = data_wrappers[1].apply_generator(generators[1], df_generated)
         return df_generated[self.X_columns], df_generated[self.y_column]
 
 #regression tasks
 class Sq_Loss(Loss):
-    def __init__(self, X, y):
+    def __init__(self, X, y, eval = 'l2'):
         Loss.__init__(self, X, y)
+        self.eval = eval
     def standard_solver(self, X = None, y = None, option = 'CVXPY', robust_param = False, reg = False):
         assert((X is not None and y is not None) or (X is None and y is None))
         if X is not None:
             self.reload(X, y)
 
         assert (robust_param is False or type(robust_param) == float or type(robust_param) == int)
-        #chi2-divergence
         self.robust = robust_param
-        #consider the obj to be 1/n||y - THETA X||^2
-        theta = cp.Variable(self.feature_dim)
-        if self.robust == False or self.robust == 0:
-            #sq loss
-            #loss = cp.sum_squares(self.X @ theta - self.y) / self.test_size
-            #abs loss
-            loss = cp.sum(cp.abs(self.X @ theta - self.y)) / self.test_size
-        else:
-            #not use them, chi2 does not perform well in this case
-            eta = cp.Variable()
-            loss = math.sqrt(1 + 2 * self.robust) / math.sqrt(self.test_size) * cp.norm(cp.pos(cp.power(self.X@theta - self.y, 2) - eta), 2) + eta
-        cons = []
+        #chi2-divergence
+        if option == 'CVXPY':
+            
+            #consider the obj to be 1/n||y - THETA X||^2
+            theta = cp.Variable(self.feature_dim)
+            cons = []
+            if self.robust == False or self.robust == 0:
+                #sq loss
+                if self.eval == 'l2':
+                    #loss = cp.Variable()
+                    #cons = [loss >= 0, loss * loss >= cp.sum_squares(self.X @ theta - self.y) / self.test_size]
+                    loss = cp.sum_squares(self.X @ theta - self.y) / self.test_size
+                #abs loss
+                elif self.eval == 'l1':
+                    loss = cp.sum(cp.abs(self.X @ theta - self.y)) / self.test_size
+            else:
+                #not use them, chi2 does not perform well in this case
+                eta = cp.Variable()
+                if self.eval == 'l2':
+                    loss = math.sqrt(1 + 2 * self.robust) / math.sqrt(self.test_size) * cp.norm(cp.pos(cp.power(self.X@theta - self.y, 2) - eta), 2) + eta
+                elif self.eval == 'l1':
+                    loss = math.sqrt(1 + 2 * self.robust) / math.sqrt(self.test_size) * cp.norm(cp.pos(cp.abs(self.X@theta - self.y, 2) - eta)) + eta
+            
 
-        #ridge or lasso?
-        if reg != False:
-            if reg[0] == 'Ridge':
-                loss += reg[1] * (cp.norm(theta, 2)) / self.test_size
-            elif reg[0] == 'Lasso':
-                loss += 2 * reg[1] * cp.norm(theta, 1)
-            elif reg[0] == 'W1-2':
-                #t = cp.Variable()
-                #cons = [t >= 0, cp.sum(cp.power(theta, 2)) + 1 <= t ** 2]
-                loss += reg[1] * cp.norm(cp.hstack([theta, 1]), 2) 
-            elif reg[0] == 'W1-inf':
-                loss += reg[1] * cp.norm(cp.hstack([theta, 1]), 1) 
+            #ridge or lasso?
+            if reg != False:
+                if reg[0] == 'Ridge':
+                    loss += reg[1] * (cp.norm(theta, 2)) / self.test_size
+                elif reg[0] == 'Lasso':
+                    loss += 2 * reg[1] * cp.norm(theta, 1)
+                elif reg[0] == 'W1-2':
+                    #t = cp.Variable()
+                    #cons = [t >= 0, cp.sum(cp.power(theta, 2)) + 1 <= t ** 2]
+                    loss += reg[1] * cp.norm(cp.hstack([theta, 1]), 2)
+                elif reg[0] == 'W1-inf':
+                    loss += reg[1] * cp.norm(cp.hstack([theta, 1]), 1) 
 
-        problem = cp.Problem(cp.Minimize(loss), cons)
-        problem.solve(solver = cp.MOSEK)
-        #print(theta.value)
-        self.w_opt = theta.value
+            problem = cp.Problem(cp.Minimize(loss), cons)
+            problem.solve(solver = cp.MOSEK)
+            #print(theta.value)
+            self.w_opt = theta.value
+        elif option == 'GUROBI':
+            test_size = self.X.shape[0]
+            feature_dim = self.X.shape[1]
+            model = grb.Model('wasserstein-reg')
+            theta = pd.Series(model.addVars(feature_dim, lb = - grb.GRB.INFINITY))
+            aux_loss = model.addVar(lb = 0)
+            aux_t = pd.Series(model.addVars(test_size, lb = 0))
+            model.addConstrs((self.y[i] - np.dot(theta, self.X[i]) <= aux_t[i] for i in range(test_size)))
+            model.addConstrs((-self.y[i] + np.dot(theta, self.X[i]) <= aux_t[i] for i in range(test_size)))
+            model.addConstr(grb.quicksum(aux_t[i] * aux_t[i] for i in range(test_size)) <= test_size * aux_loss * aux_loss)
+            
+            aux_reg = model.addVar(lb = 0)
+            
+            obj = aux_loss
+            if reg != False:
+                if reg[0] == 'W2-2':
+                    model.addConstr(grb.quicksum(theta[i] * theta[i] for i in range(feature_dim)) + 1<= aux_reg * aux_reg)
+                    obj += math.sqrt(reg[1]) * aux_reg
+                elif reg[0] == 'W2-inf':
+                    model.addConstr(grb.quicksum(grb.abs_(theta[i]) for i in range(feature_dim)) + 1 == aux_reg) 
+            model.setObjective(obj, grb.GRB.MINIMIZE)
+            model.setParam('OutputFlag', False)
+            model.optimize()
+            self.w_opt = np.array([theta_param.x for theta_param in theta])
+
         
     
     def sklearn_in_built(self, reg = False):
@@ -225,13 +263,20 @@ class Sq_Loss(Loss):
         reg.fit(self.X, self.y)
         self.w_opt = reg.coef_.reshape(-1, 1)       
     
-    def predict(self, x_test_nrm, y_test):
+    def predict(self, x_test_nrm, y_test, x_train = None, option = 'normal'):
+        assert (type(x_train) != None or option == 'normal')
         x_test_nrm = np.array(x_test_nrm)
-        y_pred = np.array(x_test_nrm @ self.w_opt).reshape(-1, 1)
+        if option == 'kernel':
+            kernel = rbf_kernel(x_test_nrm, np.array(x_train))
+            y_pred = np.dot(kernel, self.w_opt)
+        else:
+            y_pred = np.array(x_test_nrm @ self.w_opt).reshape(-1, 1)
         y_test = np.array(y_test).reshape(-1, 1)
-        print('r2 is:', r2_score(y_pred, y_test))
-        return np.mean(np.abs(y_test - y_pred))
-    
+        #print('r2 is:', r2_score(y_test, y_pred))
+        if self.eval == 'l1':
+            return np.mean(np.abs(y_test - y_pred))
+        elif self.eval == 'l2':
+            return r2_score(y_test, y_pred), np.mean((y_test - y_pred) ** 2) 
 
 #use the standard cvx solver / in-built module in scikit-learn to solve binary-classification-entropy problem, output the best param
 class Logit_Loss(Loss):

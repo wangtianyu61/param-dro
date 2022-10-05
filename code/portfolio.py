@@ -12,7 +12,7 @@ from portfolio_util import *
 feature_dim = 20
 sample_size = 200
 test_size = 2000
-window_size = 60
+window_size = 120
 #loop_num_reparam = 50
 
 #distribution shift
@@ -32,11 +32,12 @@ if __name__ == '__main__':
     #ambiguity_set_choice = [0.02, 0.05, 0.1, 0.2, 0.5, 1]
     port_name = '25_FF'
     print(port_name)
-    CV = 1
+    CV = 0
     if CV == 0:
         #ambiguity_set_choice = [0.01]
         #ambiguity_set_choice = [0.1, 0.2, 0.5, 1, 2.5, 5, 10]
-        ambiguity_set_choice = [0.2, 0.4, 0.6, 0.8, 1, 1.2, 1.4, 1.6, 1.8]
+        ambiguity_set_choice = [0.5]
+        #ambiguity_set_choice = [0.2, 0.4, 0.6, 0.8, 1, 1.2, 1.4, 1.6, 1.8]
     else:
         ambiguity_set_choice = [1]
         CV = [0.2, 0.4, 0.6, 0.8, 1, 1.2, 1.4, 1.6, 1.8]
@@ -84,7 +85,7 @@ if __name__ == '__main__':
         DRO_normal_obj[j + 1] = PORT_DRO_ERM.roll_window_test_method('Down_Risk_DRO', CV, dom_order)
         return_to_csv(PORT_DRO_ERM.port_return, port_name, 'DRO_normal')
     df = pd.DataFrame([list(DRO_noparam_obj), list(DRO_beta_obj), list(DRO_normal_obj)])
-    df.to_csv('../result/portfolio/' + port_name + '_cv_summary.csv', index = None)
+    df.to_csv('../result/portfolio/' + port_name + '_cv120_summary.csv', index = None)
     
     
     # print('nonparam', ERM_noparam_obj, DRO_noparam_obj)

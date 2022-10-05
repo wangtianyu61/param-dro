@@ -18,4 +18,4 @@ threshold = 0.0001
 
 
 mode = 'simulation-v2'
-dist_type = 'WGAN'
+dist_type = 'beta'

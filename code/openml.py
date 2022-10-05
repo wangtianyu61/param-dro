@@ -25,6 +25,7 @@ def arff2csv():
         df.to_csv(DS_DIR + filename + '.csv', index = None)  
 
 poly_size = 1
+eval_metric = 'l1'
 if __name__ == '__main__':
     filenames = ['houses', 'ailerons', 'elevators']
     
@@ -38,15 +39,15 @@ if __name__ == '__main__':
         x_data = df[list(all_label)]
         y_data = df[y_label]
         #preprocessing
-        x_train, x_test, y_train, y_test = train_test_split(x_data, y_data, test_size = 0.2)
+        x_train, x_test, y_train, y_test = train_test_split(x_data, y_data, test_size = 0.5)
 
-        # poly = PolynomialFeatures(1)
-        # x_train_new = poly.fit_transform(x_train)
-        # x_test_new = poly.fit_transform(x_test)
-        dro_model = Sq_Loss(x_train, y_train)
+        poly = PolynomialFeatures(1)
+        X_train_new = poly.fit_transform(x_train)
+        X_test_new = poly.fit_transform(x_test)
+        dro_model = Sq_Loss(x_train, y_train, eval_metric)
         for eps in [0, 0.01, 0.05, 0.1, 0.5, 1]:
-            dro_model.standard_solver(reg = ['W1-2', eps])
-            print(eps, dro_model.predict(x_train, y_train), dro_model.predict(x_test, y_test))
+            dro_model.standard_solver(reg = ['W1-2', eps], robust_param = 0, X = X_train_new, y = y_train)
+            print(eps, dro_model.predict(X_train_new, y_train), dro_model.predict(X_test_new, y_test))
         
         wgan_train_num = 5
         wgan_data = []
@@ -54,18 +55,20 @@ if __name__ == '__main__':
         validate_metric = np.zeros(wgan_train_num)
         dist_model = Distribution_Learner(X = x_train, y = y_train, is_regression = True)
         for j in range(wgan_train_num):
-            X_train_new, y_train_new = dist_model.conditional_wgan_X_y()
-            wgan_data.append({'X': X_train_new, 'y': y_train_new})
-            dro_model.standard_solver(reg = False, X = X_train_new, y = y_train_new)
-            perform_metric[j] = dro_model.predict(x_train, y_train)
-            validate_metric[j] = dro_model.predict(x_test, y_test)
+            X_train_new1, y_train_new1 = dist_model.conditional_wgan_X_y()
+            wgan_data.append({'X': X_train_new1, 'y': y_train_new1})
+            X_train_new2 = poly.fit_transform(X_train_new1)
+            dro_model.standard_solver(reg = False, X = X_train_new2, y = y_train_new1)
+            perform_metric[j] = dro_model.predict(X_train_new, y_train)
+            validate_metric[j] = dro_model.predict(X_test_new, y_test)
             print(perform_metric[j], validate_metric[j])
         #SELECT THE BEST in sample model from them
-        X_train_new = wgan_data[np.argmax(perform_metric)]['X']
-        y_train_new = wgan_data[np.argmax(perform_metric)]['y']
+        X_train_new = wgan_data[np.argmin(perform_metric)]['X']
+        X_train_new = poly.fit_transform(X_train_new)
+        y_train_new = wgan_data[np.argmin(perform_metric)]['y']
         for eps in [0, 0.01, 0.05, 0.1, 0.5, 1]:
-            dro_model.standard_solver(robust_param = 0, reg = ['Ridge', eps], X = X_train_new, y = y_train_new)
-            print(dro_model.predict(np.array(x_test), np.array(y_test)), eps)
+            dro_model.standard_solver(robust_param = 0, reg = ['W1-2', eps], X = X_train_new, y = y_train_new)
+            print(dro_model.predict(np.array(X_test_new), np.array(y_test)), eps)
             
         
             
