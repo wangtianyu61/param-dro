@@ -11,7 +11,7 @@ ambiguity_selection = 0
 ##-1 means to cheat and choose,
 ##0 means to use the given ambiguity level
 ##1 CV?
-given_fold_num = 4
+given_fold_num = 5
 
 #control parameter in beta distribution
 threshold = 0.0001

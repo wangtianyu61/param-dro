@@ -12,7 +12,7 @@ class simulation_test:
         self.sample_size = sample_size
         self.feature_dim = feature_dim
         self.reparam = True
-        self.bd = 2
+        self.bd = 10
         #self.ambiguity_size = self.bd*5/self.sample_size
         self.ambiguity_size = 0.5
     def ERM(self, dom_order = 2):

@@ -78,22 +78,22 @@ def ldw_normal(x_train, y_train):
 
      
 poly_size = 2
-Dist_Shift = 'age'
+Dist_Shift = 'No'
 Eval_Loss = 'l2'
 eps_list = [0.01, 0.1, 0.5, 1, 5, 10, 50, 100]
 #eps_list = [1]
 
 regr_setup = 'W2-2'
 solver_setup = 'GUROBI'
-loop_num = 20
-all_test_num = 1000
+loop_num = 50
+all_test_num = 1500
 
 #problem parameter
 feature = ['t', 'age', 'education', 'black', 'hispanic', 'married', 'nodegree', 're74', 're75']
 label = 're78'
 names_control = ['nswre74', 'psid', 'cps']
-name = names_control[2]
-normal_train_num = 5
+name = names_control[1]
+normal_train_num = 2
 
 
 #pick the best eps for dro model as domain knowledge with a separate dataset, however, we do not augment them as in the real downside training tasks.
@@ -176,9 +176,9 @@ if __name__ == '__main__':
             elif Dist_Shift == 'age':
                 data_train = data_all[data_all['age'] >= 25]
                 data_test = data_all[data_all['age'] < 25]
-            all_data_train, ___ = train_test_split(data_train, train_size = all_test_num * 2)
+            all_data_train, ___ = train_test_split(data_train, train_size = int(all_test_num * 1.2))
             
-            data_train, data_ct = train_test_split(all_data_train, train_size = 0.5)
+            data_train, data_ct = train_test_split(all_data_train, train_size = 0.8)
             data_test, data_ct_test = train_test_split(data_test, train_size = 0.8)
             best_eps = dist_shift_eps_selection(data_ct, data_ct_test)
             eps_list = [best_eps]
@@ -318,7 +318,7 @@ if __name__ == '__main__':
     if Dist_Shift == 'age':
         df.to_csv('../result/LDW/age_' + name + '_' + str(poly_size) + '_' + str(all_test_num) + '.csv')
     else:
-        df.to_csv('../result/LDW/' + name + '_' + str(poly_size) + '_' + str(all_test_num) + '.csv')
+        df.to_csv('../result/LDW/temp_' + name + '_' + str(poly_size) + '_' + str(all_test_num) + '.csv')
 
 
 

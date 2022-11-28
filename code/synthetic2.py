@@ -20,7 +20,7 @@ contaminate_rate = 0.2
 shift_prop = 0.2
 
 
-outer_test_num = 20
+outer_test_num = 50
 resample_times = 10
 
 
@@ -36,7 +36,7 @@ feature_name = ['Mkt-RF', 'SMB', 'HML']
 # return_cov = (B + B.T)/4
 
 
-dom_order = 1
+dom_order = 2
 class DGP:
     def __init__(self, sample_size, feature_dim, test_size, dist_type):
         self.sample_size = sample_size
@@ -87,7 +87,7 @@ class DGP:
         # return data
     def DGP_test_beta(self):
         #model 3: distribution shift
-        #shift_prop2 = np.random.uniform(-shift_prop, shift_prop)
+        # shift_prop2 = np.random.uniform(-shift_prop, shift_prop)
         # for i in range(self.port_num):
         #     shift_prop2 = np.random.uniform(0, shift_prop)
         #     flag = -1
@@ -99,8 +99,6 @@ class DGP:
         #     #     self.alpha[i] = self.alpha[i] - (self.alpha[i] - alpha_lb)/shift_prop
         #     self.alpha[i] = self.alpha[i] + flag * shift_prop2 * min(self.alpha[i] - alpha_lb, alpha_ub - self.alpha[i])
             
-            
-        
         data = np.ones((self.port_num, self.test_size))
         for i in range(self.port_num):
             data[i] = 2*self.dist_bd[i] * np.random.beta(self.alpha[i], self.beta[i], size = self.test_size) - self.dist_bd[i]
@@ -119,14 +117,15 @@ class DGP:
 
 if __name__ == '__main__':
     
-    for dom_order in [1, 2, 4]:
-        for sample_size in [25, 50, 100, 200]:
+    for dom_order in [1]:
+        for sample_size in [25]:
             CV = 0
             if CV == 0:
                 #ambiguity_set_choice = [0.01]
                 #misspecified
                 ambiguity_set_choice = [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1]
                 #ambiguity_set_choice = [0, 0.01, 0.05, 0.1, 0.5, 1, 5, 10]
+                #ambiguity_set_choice = [0, 0.01, 0.05, 0.1, 0.5, 1]
             else:
                 ambiguity_set_choice = [1]
                 CV = [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1]
@@ -234,10 +233,18 @@ if __name__ == '__main__':
             c3 = [stats.ttest_rel(ERM_normal, ERM_nonparam)[1]]
             c3.extend([stats.ttest_rel(DRO_normal[j], DRO_nonparam[j])[1] for j in range(len(ambiguity_set_choice))])
             
-            df = pd.DataFrame([a1, a2, b1, b2, b3, c1, c2, c3])    
+            d1 = [np.std(ERM_nonparam) / math.sqrt(outer_test_num)]
+            d1.extend([np.std(DRO_nonparam[j]) / math.sqrt(outer_test_num) for j in range(len(ambiguity_set_choice))])
             
-            suffix = str(sample_size) + '_' + str(PORT_DRO_ERM.lower_weight) 
-            #str(PORT_DRO_ERM.lower_weight) + '_' + str(PORT_DRO_ERM.target_return) + '_' + str(shift_prop)
+            d2 = [np.std(ERM_beta) / math.sqrt(outer_test_num)]
+            d2.extend([np.std(DRO_beta[j]) / math.sqrt(outer_test_num) for j in range(len(ambiguity_set_choice))])
+            
+            d3 = [np.std(ERM_normal) / math.sqrt(outer_test_num)]
+            d3.extend([np.std(DRO_normal[j]) / math.sqrt(outer_test_num) for j in range(len(ambiguity_set_choice))])
+            
+            df = pd.DataFrame([a1, a2, b1, b2, b3, c1, c2, c3, d1, d2, d3])    
+            
+            suffix = str(sample_size) + '_' + str(PORT_DRO_ERM.lower_weight)
             #print(a1, b1, c1)
             
             df.to_csv('../result/1003-rerun/temp1_' + str(dom_order) + '_' + str(suffix) + '.csv', index = None)
